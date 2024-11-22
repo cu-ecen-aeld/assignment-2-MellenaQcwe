@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <syslog.h>
+#include <string.h>
+#include <fcntl.h>
 #include <unistd.h>
 
 static int help_flag;
@@ -74,18 +76,17 @@ static void print_usage (const char* command_name) {
 }
 
 static int write_to_file (const char* file_path, const char* str) {
-    FILE* fptr;
     /*Assuming the directory is created by the caller*/
-    fptr = fopen (file_path, "w");
-    if (fptr == NULL) {
+    int fptr = open (file_path, O_WRONLY | O_CREAT);
+    if (fptr == -1) {
         printf ("%s does not exist. Please create the file before running this program.", file_path);
         syslog (LOG_ERR, "%s does not exist. Please create the file before running this program.", file_path);
-        exit (1);
+        return 1;
     }
-    fputs (str, fptr);
-    printf("Written '%s' to file '%s'\n", str, file_path);
-    syslog (LOG_DEBUG, "Written '%s' to file '%s'", str, file_path);
-    fclose (fptr);
+    int sz = write (fptr, str, strlen(str));
+    printf("Written '%s' to file '%s' (%d bytes)\n", str, file_path, sz);
+    syslog (LOG_DEBUG, "Written '%s' to file '%s' (%d bytes)\n", str, file_path, sz);
+    if (close (fptr) < 0) return 1;
 
     return 0;
 }
